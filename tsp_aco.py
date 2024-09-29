@@ -119,7 +119,10 @@ class AntColonyOptimization:
             self.update_pheromones(ant_solutions)
 
             if iteration % 10 == 0:  # Print progress every 10 iterations
-                print(f"Iteration {iteration + 1}/{self.num_iterations}: Best Cost = {best_cost}")
+                print(best_tour)
+                # print(f"Iteration {iteration + 1}/{self.num_iterations}: Best Cost = {best_cost}")
+            if iteration == self.num_iterations - 1:
+                print("best_tour")
 
         return best_tour, best_cost
 
@@ -145,5 +148,5 @@ def main(file_path):
     print("Minimum Cost of Tour:", best_cost)
 
 # Example usage:
-file_path = 'C:\Shivangi\college\Sem 5\SMAI\Assignment 2\data_set_100_NON-EUCLIDEAN'  # Replace with the path to your input file
+file_path = '.\data_set_50_NON-EUCLIDEAN'  # Replace with the path to your input file
 main(file_path)
