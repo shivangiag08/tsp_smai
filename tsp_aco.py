@@ -84,7 +84,16 @@ class AntColonyOptimization:
         best_tour = None
         best_cost = float('inf')
 
+        start_time = time.time()
+        timeout = 280
+
         for iteration in range(self.num_iterations):
+
+            elapsed_time = time.time() - start_time
+            if elapsed_time > timeout:
+                print("Timeout!")
+                break
+
             ant_solutions = []
 
             for _ in range(self.num_ants):
@@ -118,8 +127,8 @@ def main(file_path):
     aco = AntColonyOptimization(distance_matrix, num_ants, num_iterations, alpha, beta, evaporation_rate, pheromone_deposit)
     best_tour, best_cost = aco.run()
 
-    # print("Best Tour (0-indexed):", best_tour)
-    # print("Minimum Cost of Tour:", best_cost)
+    print("Best Tour (0-indexed):", best_tour)
+    print("Minimum Cost of Tour:", best_cost)
 
 
 if __name__ == "__main__":
