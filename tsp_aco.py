@@ -2,19 +2,18 @@ import time
 import sys
 start_time = time.time()
 
-def read_input(file_path):
-    with open(file_path, 'r') as file:
-        distance_type = file.readline().strip()
-        N = int(file.readline().strip())
-        coordinates = []
-        for _ in range(N):
-            line = file.readline().strip()
-            coordinates.append(tuple(map(float, line.split())))
+def read_input():
+    distance_type = sys.stdin.readline().strip()
+    N = int(sys.stdin.readline().strip())
+    coordinates = []
+    for _ in range(N):
+        line = sys.stdin.readline().strip()
+        coordinates.append(tuple(map(float, line.split())))
 
-        distance_matrix = []
-        for _ in range(N):
-            line = file.readline().strip()
-            distance_matrix.append(list(map(float, line.split())))
+    distance_matrix = []
+    for _ in range(N):
+        line = sys.stdin.readline().strip()
+        distance_matrix.append(list(map(float, line.split())))
 
     return distance_type, N, coordinates, distance_matrix
 
@@ -108,14 +107,14 @@ class AntColonyOptimization:
             self.update_pheromones(ant_solutions)
 
             if iteration % 10 == 0: 
-                print(best_tour)
+                print(*best_tour, sep=' ')
             if iteration == self.num_iterations - 1:
-                print(best_tour)
+                print(*best_tour, sep=' ')
 
         return best_tour, best_cost
 
-def main(file_path):
-    distance_type, N, coordinates, distance_matrix = read_input(file_path)
+def main():
+    distance_type, N, coordinates, distance_matrix = read_input()
 
     num_ants = 50
     num_iterations = 200
@@ -127,14 +126,9 @@ def main(file_path):
     aco = AntColonyOptimization(distance_matrix, num_ants, num_iterations, alpha, beta, evaporation_rate, pheromone_deposit)
     best_tour, best_cost = aco.run()
 
-    print("Best Tour (0-indexed):", best_tour)
-    print("Minimum Cost of Tour:", best_cost)
+    # print("Best Tour (0-indexed):", best_tour)
+    # print("Minimum Cost of Tour:", best_cost)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python script_name.py <file_path>")
-        sys.exit(1)
-    
-    file_path = sys.argv[1]  # Get the file path from command line arguments
-    main(file_path)
+    main()
