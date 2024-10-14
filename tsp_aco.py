@@ -33,9 +33,9 @@ class AntColonyOptimization:
         self.evaporation_rate = evaporation_rate
         self.pheromone_deposit = pheromone_deposit
         self.num_cities = len(distance_matrix)
-        self.pheromones = np.ones((self.num_cities, self.num_cities))  # Initialize pheromones to 1
-        self.heuristics = np.divide(1, self.distance_matrix + 1e-10)  # Precompute heuristics (1/distance)
-
+        self.pheromones = np.ones((self.num_cities, self.num_cities)) 
+        self.heuristics = np.divide(1, self.distance_matrix + 1e-10)  
+        
     def construct_solution(self):
         start_city = random.randint(0, self.num_cities - 1)
         ant_tour = [start_city]
@@ -49,7 +49,7 @@ class AntColonyOptimization:
             attractiveness = pheromone * heuristic
 
             for city in visited:
-                attractiveness[city] = 0  # Zero out visited cities
+                attractiveness[city] = 0  
 
             probabilities = attractiveness / np.sum(attractiveness)
             next_city = np.random.choice(range(self.num_cities), p=probabilities)
@@ -60,22 +60,21 @@ class AntColonyOptimization:
         return ant_tour
 
     def update_pheromones(self, ant_solutions):
-        self.pheromones *= (1 - self.evaporation_rate)  # Apply evaporation to all pheromones
-
+        self.pheromones *= (1 - self.evaporation_rate) 
         for ant_tour, tour_cost in ant_solutions:
             pheromone_to_add = self.pheromone_deposit / tour_cost
             for i in range(len(ant_tour) - 1):
                 self.pheromones[ant_tour[i]][ant_tour[i + 1]] += pheromone_to_add
-            self.pheromones[ant_tour[-1]][ant_tour[0]] += pheromone_to_add  # Complete the cycle
+            self.pheromones[ant_tour[-1]][ant_tour[0]] += pheromone_to_add  
 
     def run(self, global_best, lock):
         best_tour = None
         best_cost = float('inf')
         start_time = time.time()
-        timeout = 300  # Set timeout to 300 seconds
+        timeout = 300  
 
         iteration = 0
-        while True:  # Loop until timeout is reached
+        while True:  
             if time.time() - start_time > timeout:
                 print("Timeout!")
                 break
@@ -92,7 +91,6 @@ class AntColonyOptimization:
 
             self.update_pheromones(ant_solutions)
 
-            # Update global best after 10 iterations
             if iteration % 10 == 0:
                 with lock:
                     if best_cost < global_best['cost']:
@@ -118,19 +116,14 @@ def main(file_path):
     pheromone_deposit = 100
     num_threads = max(4, os.cpu_count() - 3) 
 
-    # Shared data structure to track the global best tour and cost
     global_best = {'tour': None, 'cost': float('inf')}
-    lock = Lock()  # Lock for synchronizing access to global best
-
-    # Use ThreadPoolExecutor to run multiple ACO simulations concurrently
+    lock = Lock()  
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = [executor.submit(run_aco_simulation, distance_matrix, num_ants, alpha, beta, evaporation_rate, pheromone_deposit, global_best, lock) for _ in range(num_threads)]
 
-        # Collect results from all threads
         for future in futures:
-            future.result()  # Ensure all threads have completed
+            future.result() 
 
-    # Print the final global best result after all threads finish
     print("Best Tour (0-indexed):", global_best['tour'])
     print("Minimum Cost of Tour:", global_best['cost'])
 
