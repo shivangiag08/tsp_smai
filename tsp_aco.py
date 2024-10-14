@@ -6,19 +6,18 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 
-def read_input(file_path):
-    with open(file_path, 'r') as file:
-        distance_type = file.readline().strip()
-        N = int(file.readline().strip())
-        coordinates = []
-        for _ in range(N):
-            line = file.readline().strip()
-            coordinates.append(tuple(map(float, line.split())))
+def read_input():
+    distance_type = sys.stdin.readline().strip()
+    N = int(sys.stdin.readline().strip())
+    coordinates = []
+    for _ in range(N):
+        line = sys.stdin.readline().strip()
+        coordinates.append(tuple(map(float, line.split())))
 
-        distance_matrix = []
-        for _ in range(N):
-            line = file.readline().strip()
-            distance_matrix.append(list(map(float, line.split())))
+    distance_matrix = []
+    for _ in range(N):
+        line = sys.stdin.readline().strip()
+        distance_matrix.append(list(map(float, line.split())))
 
     return distance_type, N, coordinates, distance_matrix
 
@@ -136,9 +135,4 @@ def main(file_path):
     print("Minimum Cost of Tour:", global_best['cost'])
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python script_name.py <file_path>")
-        sys.exit(1)
-    
-    file_path = sys.argv[1]  # Get the file path from command line arguments
-    main(file_path)
+    main()
