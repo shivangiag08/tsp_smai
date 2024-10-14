@@ -1,6 +1,10 @@
 import time
 import sys
-start_time = time.time()
+import numpy as np
+import random
+import os
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 def read_input(file_path):
     with open(file_path, 'r') as file:
@@ -18,84 +22,66 @@ def read_input(file_path):
 
     return distance_type, N, coordinates, distance_matrix
 
-import numpy as np
-import random
-
 def calculate_tour_cost(tour, distance_matrix):
-    total_cost = 0
-    for i in range(len(tour) - 1):
-        total_cost += distance_matrix[tour[i]][tour[i + 1]]
-    total_cost += distance_matrix[tour[-1]][tour[0]] 
-    return total_cost
+    return np.sum([distance_matrix[tour[i]][tour[i + 1]] for i in range(len(tour) - 1)]) + distance_matrix[tour[-1]][tour[0]]
 
 class AntColonyOptimization:
-    def __init__(self, distance_matrix, num_ants, num_iterations, alpha=1, beta=5, evaporation_rate=0.5, pheromone_deposit=100):
-        self.distance_matrix = distance_matrix
+    def __init__(self, distance_matrix, num_ants, alpha=1, beta=5, evaporation_rate=0.5, pheromone_deposit=100):
+        self.distance_matrix = np.array(distance_matrix)
         self.num_ants = num_ants
-        self.num_iterations = num_iterations
-        self.alpha = alpha  
-        self.beta = beta  
+        self.alpha = alpha
+        self.beta = beta
         self.evaporation_rate = evaporation_rate
         self.pheromone_deposit = pheromone_deposit
         self.num_cities = len(distance_matrix)
-        self.pheromones = np.ones((self.num_cities, self.num_cities)) 
+        self.pheromones = np.ones((self.num_cities, self.num_cities))  # Initialize pheromones to 1
+        self.heuristics = np.divide(1, self.distance_matrix + 1e-10)  # Precompute heuristics (1/distance)
 
-    def heuristic(self, i, j):
-        return 1 / (self.distance_matrix[i][j] + 1e-10)  
     def construct_solution(self):
-        ant_tour = []
-        start_city = random.randint(0, self.num_cities - 1)  
-        ant_tour.append(start_city)
-        visited = set(ant_tour)
+        start_city = random.randint(0, self.num_cities - 1)
+        ant_tour = [start_city]
+        visited = {start_city}
 
         for _ in range(self.num_cities - 1):
             current_city = ant_tour[-1]
-            probabilities = []
 
-            for next_city in range(self.num_cities):
-                if next_city not in visited:
-                    pheromone = self.pheromones[current_city][next_city] ** self.alpha
-                    heuristic_value = self.heuristic(current_city, next_city) ** self.beta
-                    probabilities.append(pheromone * heuristic_value)
-                else:
-                    probabilities.append(0)  
+            pheromone = self.pheromones[current_city] ** self.alpha
+            heuristic = self.heuristics[current_city] ** self.beta
+            attractiveness = pheromone * heuristic
 
-            probabilities = np.array(probabilities)
-            probabilities /= probabilities.sum()  
+            for city in visited:
+                attractiveness[city] = 0  # Zero out visited cities
+
+            probabilities = attractiveness / np.sum(attractiveness)
             next_city = np.random.choice(range(self.num_cities), p=probabilities)
+
             ant_tour.append(next_city)
             visited.add(next_city)
 
         return ant_tour
 
     def update_pheromones(self, ant_solutions):
-        self.pheromones *= (1 - self.evaporation_rate)
+        self.pheromones *= (1 - self.evaporation_rate)  # Apply evaporation to all pheromones
 
         for ant_tour, tour_cost in ant_solutions:
             pheromone_to_add = self.pheromone_deposit / tour_cost
             for i in range(len(ant_tour) - 1):
                 self.pheromones[ant_tour[i]][ant_tour[i + 1]] += pheromone_to_add
-                self.pheromones[ant_tour[i + 1]][ant_tour[i]] += pheromone_to_add  
+            self.pheromones[ant_tour[-1]][ant_tour[0]] += pheromone_to_add  # Complete the cycle
 
-            self.pheromones[ant_tour[-1]][ant_tour[0]] += pheromone_to_add
-            self.pheromones[ant_tour[0]][ant_tour[-1]] += pheromone_to_add
-
-    def run(self):
+    def run(self, global_best, lock):
         best_tour = None
         best_cost = float('inf')
-
         start_time = time.time()
-        timeout = 280
+        timeout = 300  # Set timeout to 300 seconds
 
-        for iteration in range(self.num_iterations):
-
-            elapsed_time = time.time() - start_time
-            if elapsed_time > timeout:
+        iteration = 0
+        while True:  # Loop until timeout is reached
+            if time.time() - start_time > timeout:
                 print("Timeout!")
                 break
 
             ant_solutions = []
-
             for _ in range(self.num_ants):
                 ant_tour = self.construct_solution()
                 tour_cost = calculate_tour_cost(ant_tour, self.distance_matrix)
@@ -107,29 +93,47 @@ class AntColonyOptimization:
 
             self.update_pheromones(ant_solutions)
 
-            if iteration % 10 == 0: 
-                print(best_tour)
-            if iteration == self.num_iterations - 1:
-                print(best_tour)
+            # Update global best after 10 iterations
+            if iteration % 10 == 0:
+                with lock:
+                    if best_cost < global_best['cost']:
+                        global_best['tour'] = best_tour
+                        global_best['cost'] = best_cost
+                        print(f"\n\nGlobal best tour so far: {best_tour} \ncost = {best_cost}")
+
+            iteration += 1
 
         return best_tour, best_cost
+
+def run_aco_simulation(distance_matrix, num_ants, alpha, beta, evaporation_rate, pheromone_deposit, global_best, lock):
+    aco = AntColonyOptimization(distance_matrix, num_ants, alpha, beta, evaporation_rate, pheromone_deposit)
+    return aco.run(global_best, lock)
 
 def main(file_path):
     distance_type, N, coordinates, distance_matrix = read_input(file_path)
 
     num_ants = 50
-    num_iterations = 200
-    alpha = 1  
-    beta = 5 
+    alpha = 1
+    beta = 5
     evaporation_rate = 0.5
     pheromone_deposit = 100
+    num_threads = max(4, os.cpu_count() - 3) 
 
-    aco = AntColonyOptimization(distance_matrix, num_ants, num_iterations, alpha, beta, evaporation_rate, pheromone_deposit)
-    best_tour, best_cost = aco.run()
+    # Shared data structure to track the global best tour and cost
+    global_best = {'tour': None, 'cost': float('inf')}
+    lock = Lock()  # Lock for synchronizing access to global best
 
-    print("Best Tour (0-indexed):", best_tour)
-    print("Minimum Cost of Tour:", best_cost)
+    # Use ThreadPoolExecutor to run multiple ACO simulations concurrently
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        futures = [executor.submit(run_aco_simulation, distance_matrix, num_ants, alpha, beta, evaporation_rate, pheromone_deposit, global_best, lock) for _ in range(num_threads)]
 
+        # Collect results from all threads
+        for future in futures:
+            future.result()  # Ensure all threads have completed
+
+    # Print the final global best result after all threads finish
+    print("Best Tour (0-indexed):", global_best['tour'])
+    print("Minimum Cost of Tour:", global_best['cost'])
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

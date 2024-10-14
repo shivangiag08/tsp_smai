@@ -91,7 +91,7 @@ def evolve_population(population, fitness, elite_size, mutation_rate):
     return new_population
 
 # Main Genetic Algorithm for TSP
-def genetic_algorithm_tsp(distance_matrix, N, pop_size=600, generations=2500, elite_size=30, mutation_rate=0.25):
+def genetic_algorithm_tsp(distance_matrix, N, pop_size=600, generations=1500, elite_size=30, mutation_rate=0.25):
     # Initialize population
     population = initialize_population(pop_size, N)
     
@@ -129,5 +129,5 @@ def main(file_path):
     print("Minimum Cost of Tour:", best_cost)
 
 # Example usage:
-file_path = 'Assignment 2\data_set_50_NON-EUCLIDEAN'  # Replace this with your actual file path
+file_path = 'Assignment 2\data_set_100_EUCLIDEAN'  # Replace this with your actual file path
 main(file_path)
