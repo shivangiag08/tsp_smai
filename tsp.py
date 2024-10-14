@@ -1,4 +1,5 @@
 import time
+import sys
 start_time = time.time()
 
 def read_input(file_path):
@@ -128,6 +129,10 @@ def main(file_path):
     print("Best Tour (0-indexed):", best_tour)
     print("Minimum Cost of Tour:", best_cost)
 
-# Example usage:
-file_path = 'Assignment 2\data_set_50_NON-EUCLIDEAN'  # Replace this with your actual file path
-main(file_path)
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python script_name.py <file_path>")
+        sys.exit(1)
+
+    file_path = sys.argv[1]  #get the file path from command line arguments
+    main(file_path)
